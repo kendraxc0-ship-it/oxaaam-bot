@@ -17,7 +17,7 @@ from telegram.constants import ParseMode
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 MAIN_TOKEN = "8516833981:AAGfsgG0vDzOzLNC9viruXa9l3wCz53LDOQ"
-FEEDBACK_TOKEN = "YOUR_FEEDBACK_BOT_TOKEN_HERE"  # <-- GET FROM @BotFather
+FEEDBACK_TOKEN = "8815684366:AAGuiGnto1SvfwAZNuFUtzt2yWMNLZJZ_X8 @BotFather
 ADMIN_CHAT_ID = "7305141058"  # YOUR TELEGRAM ID
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
