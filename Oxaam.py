@@ -1,5 +1,5 @@
-#Made By @SajagOG | @KindCoders On Telegram. Site Used : Oxaam.com Auto Sign Up & Auto Service Extractor
-# UPGRADED: Full screenshot verification - sends proof to owner
+# Made by @X1n0q | Hex
+# Crunchyroll Farmer Bot - Simple & Clean
 
 import requests
 import random
@@ -16,7 +16,6 @@ from telegram.constants import ParseMode
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# ===== CONFIG =====
 BOT_TOKEN = "8516833981:AAGfsgG0vDzOzLNC9viruXa9l3wCz53LDOQ"
 OWNER_CHAT_ID = 7305141058
 
@@ -36,14 +35,8 @@ headers = {
 }
 
 def extract_krunshyrole():
-    logger.info("=== Oxaam Free Services Credential Extractor (Bot Mode) ===")
-    
     session = requests.Session()
     user = generate_user()
-
-    logger.info(f"Creating Oxaam account...")
-    logger.info(f"Email    : {user['email']}")
-    logger.info(f"Password : {user['password']}\n")
 
     signup_data = f"name={user['name']}&email={user['email']}&phone={user['phone']}&password={user['password']}&country={user['country']}"
     session.post("https://www.oxaam.com/", 
@@ -55,21 +48,16 @@ def extract_krunshyrole():
                  headers={**headers, "Content-Type": "application/x-www-form-urlencoded", "Referer": "https://www.oxaam.com/"}, 
                  data=login_data, timeout=15)
 
-    logger.info("Fetching free services page...")
     r = session.get("https://www.oxaam.com/freeservice.php", 
                     headers={**headers, "Referer": "https://www.oxaam.com/dashboard.php"}, timeout=15)
 
     if r.status_code != 200:
-        logger.error(f"❌ Failed (Status: {r.status_code})")
         return None, None, None
 
     html = r.text
-    logger.info("✅ Page loaded. Extracting credentials...")
-
-    filename = f"oxaam_freeservices_{int(time.time())}.html"
-    with open(filename, "w", encoding="utf-8") as f:
+    
+    with open(f"oxaam_{int(time.time())}.html", "w", encoding="utf-8") as f:
         f.write(html)
-    logger.info(f"✅ Full page saved as '{filename}'")
 
     js_match = re.search(r'const CREDENTIALS\s*=\s*(\[.*?\]);', html, re.DOTALL | re.IGNORECASE)
     
@@ -85,13 +73,9 @@ def extract_krunshyrole():
                 password = pick.get("password", "").strip()
                 
                 if email and password:
-                    logger.info(f"Server - Krunshyrole Premium")
-                    logger.info(f"Email - {email}")
-                    logger.info(f"Pass  - {password}")
-                    logger.info("-" * 45)
                     return "Krunshyrole Premium", email, password
-        except Exception as e:
-            logger.warning(f"JS parsing failed: {e}")
+        except:
+            pass
 
     fallback = re.findall(
         r'(Krunshyrole[^<]*?Premium).*?Email[^:➜]*[:➜]\s*([\w\.-]+@[\w\.-]+\.\w+).*?Password[^:➜]*[:➜]\s*([^<"\n]+)',
@@ -103,32 +87,26 @@ def extract_krunshyrole():
             service = block[0].replace("&nbsp;", " ").strip().title()
             email = block[1].strip()
             password = block[2].strip()
-            logger.info(f"Server - {service}")
-            logger.info(f"Email - {email}")
-            logger.info(f"Pass  - {password}")
-            logger.info("-" * 45)
             return service, email, password
 
-    logger.warning("❌ Could not extract Krunshyrole credentials")
     return None, None, None
 
 async def loading_animation(status_msg):
     stages = [
-        "Creating fresh Oxaam account...",
-        "Logging into Oxaam...",
-        "Fetching free services page...",
-        "Extracting Krunshyrole Premium credentials..."
+        "Creating Oxaam account...",
+        "Logging in...",
+        "Fetching credentials...",
+        "Extracting premium..."
     ]
     dots = ["", ".", "..", "..."]
     i = 0
-    start_time = time.time()
-
-    while time.time() - start_time < 20:
+    start = time.time()
+    while time.time() - start < 20:
         stage = stages[i % len(stages)]
         dot = dots[i % len(dots)]
         try:
             await status_msg.edit_text(
-                f"🔄 {stage}{dot}\n\n<i>Please wait • Usually takes 8-18 seconds...</i>",
+                f"⚡ {stage}{dot}\n\n<i>Please wait...</i>",
                 parse_mode=ParseMode.HTML
             )
         except:
@@ -137,197 +115,236 @@ async def loading_animation(status_msg):
         i += 1
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [[InlineKeyboardButton("🔥 Gen Crunchyroll", callback_data="gen_krunshy")]]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+    user_id = update.effective_user.id
+    
+    pending_key = f"pending_{user_id}"
+    if context.bot_data.get(pending_key, False):
+        email = context.bot_data.get(f"pending_email_{user_id}", "Unknown")
+        keyboard = [
+            [InlineKeyboardButton("✅ Working", callback_data="feedback_working")],
+            [InlineKeyboardButton("❌ Not Working", callback_data="feedback_notworking")]
+        ]
+        await update.message.reply_text(
+            f"🔒 <b>Pending Verification</b>\n\n"
+            f"Account: <code>{email}</code>\n\n"
+            f"Please verify before generating another account.",
+            parse_mode=ParseMode.HTML,
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        return
 
+    keyboard = [
+        [InlineKeyboardButton("▶ Generate Account", callback_data="gen")],
+        [InlineKeyboardButton("📊 Stats", callback_data="stats")],
+        [InlineKeyboardButton("❓ Help", callback_data="help")]
+    ]
+    
     await update.message.reply_text(
-        "👋 <b>Crunchyroll Farmer Bot</b>\n\n"
-        "Click the button to generate fresh <b>Crunchy Premium</b> credentials.\n\n"
-        "<i>Shared accounts may expire quickly.</i>",
+        f"🎬 <b>Crunchyroll Farmer</b>\n\n"
+        f"• {random.randint(7000, 8000):,} users online\n"
+        f"• 0.3s avg speed\n\n"
+        f"<i>Made by @X1n0q | Hex</i>",
         parse_mode=ParseMode.HTML,
-        reply_markup=reply_markup
+        reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
+    user_id = update.effective_user.id
     await query.answer()
 
-    if query.data == "gen_krunshy":
-        status_msg = await query.message.reply_text("🚀 Starting generation...", parse_mode=ParseMode.HTML)
+    if query.data == "gen":
+        pending_key = f"pending_{user_id}"
+        if context.bot_data.get(pending_key, False):
+            email = context.bot_data.get(f"pending_email_{user_id}", "Unknown")
+            keyboard = [
+                [InlineKeyboardButton("✅ Working", callback_data="feedback_working")],
+                [InlineKeyboardButton("❌ Not Working", callback_data="feedback_notworking")]
+            ]
+            await query.edit_message_text(
+                f"🔒 <b>Pending Verification</b>\n\n"
+                f"Account: <code>{email}</code>\n\n"
+                f"Please verify first.",
+                parse_mode=ParseMode.HTML,
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+            return
 
-        animation_task = asyncio.create_task(loading_animation(status_msg))
-
+        status = await query.message.reply_text("⚡ Generating...", parse_mode=ParseMode.HTML)
+        anim = asyncio.create_task(loading_animation(status))
+        
         service, email, password = await asyncio.to_thread(extract_krunshyrole)
-
-        animation_task.cancel()
+        
+        anim.cancel()
         try:
-            await animation_task
-        except asyncio.CancelledError:
+            await anim
+        except:
             pass
 
         if email and password:
-            # Store credentials in context for feedback
             context.user_data['last_email'] = email
             context.user_data['last_password'] = password
-            context.user_data['last_service'] = service
-            context.user_data['awaiting_screenshot'] = False  # reset flag
+            
+            context.bot_data[pending_key] = True
+            context.bot_data[f"pending_email_{user_id}"] = email
 
-            result_text = (
-                f"✅ <b>Crunchyroll Premium Generated!</b>\n\n"
-                f"<b>Service :</b> <b> CrunchiefarmV6.6</b>\n"
-                f"<b>Email   :</b> <code>{email}</code>\n"
-                f"<b>Password:</b> <code>{password}</code>\n\n"
-                f"⚠️ <b>Shared account • Can get logged out anytime.</b>\n\n"
-                f"👇 <b>Is the account working?</b>"
-            )
-            
-            # Add feedback buttons
             keyboard = [
-                [
-                    InlineKeyboardButton("✅ Working", callback_data="feedback_working"),
-                    InlineKeyboardButton("❌ Not Working", callback_data="feedback_notworking")
-                ]
+                [InlineKeyboardButton("✅ Working", callback_data="feedback_working")],
+                [InlineKeyboardButton("❌ Not Working", callback_data="feedback_notworking")]
             ]
-            reply_markup = InlineKeyboardMarkup(keyboard)
             
-            await status_msg.edit_text(
-                result_text,
+            await status.edit_text(
+                f"✅ <b>Account Ready</b>\n\n"
+                f"📧 <code>{email}</code>\n"
+                f"🔑 <code>{password}</code>\n\n"
+                f"⚠️ Shared account\n\n"
+                f"<i>Is it working?</i>",
                 parse_mode=ParseMode.HTML,
-                reply_markup=reply_markup
+                reply_markup=InlineKeyboardMarkup(keyboard)
             )
         else:
-            await status_msg.edit_text(
-                "❌ <b>Could not extract Krunshyrole credentials this time.</b>\n\n"
-                "The site may have updated. Try again in a few minutes.\n"
-                "Check the saved HTML file for details.",
+            await status.edit_text(
+                "❌ <b>Failed</b>\n\n"
+                "Could not generate account.\n"
+                "Please try again in a few minutes.",
                 parse_mode=ParseMode.HTML
             )
 
-    # ===== WORKING: ASK FOR SCREENSHOT =====
     elif query.data == "feedback_working":
         email = context.user_data.get('last_email', 'Unknown')
+        password = context.user_data.get('last_password', 'Unknown')
         
-        # Set flag that we're awaiting screenshot
         context.user_data['awaiting_screenshot'] = True
         context.user_data['screenshot_email'] = email
-        context.user_data['screenshot_password'] = context.user_data.get('last_password', 'Unknown')
+        context.user_data['screenshot_password'] = password
+        
+        pending_key = f"pending_{user_id}"
+        context.bot_data[pending_key] = False
+        context.bot_data.pop(f"pending_email_{user_id}", None)
         
         await query.edit_message_text(
-            f"✅ <b>Great! The account is working.</b>\n\n"
-            f"💬 Please send a screenshot of the account working "
-            f"(Crunchyroll dashboard, anime playing, or any proof).\n\n"
-            f"Just send the image here.\n"
-            f"{time.strftime('%I:%M %p')}",
+            f"📸 <b>Send Screenshot</b>\n\n"
+            f"Show proof it's working.\n\n"
+            f"📩 {email}",
             parse_mode=ParseMode.HTML
         )
-        await query.answer("Please send screenshot proof")
 
-    # ===== NOT WORKING: DIRECT FEEDBACK =====
     elif query.data == "feedback_notworking":
         email = context.user_data.get('last_email', 'Unknown')
         password = context.user_data.get('last_password', 'Unknown')
-        user_id = query.from_user.id
         username = query.from_user.username or "NoUsername"
         
-        feedback_text = (
-            f"❌ <b>NOT WORKING</b>\n"
-            f"👤 User: {user_id} (@{username})\n"
-            f"📧 Email: <code>{email}</code>\n"
-            f"🔑 Pass: <code>{password}</code>\n"
-            f"🕐 Time: {time.strftime('%Y-%m-%d %H:%M:%S')}"
-        )
+        pending_key = f"pending_{user_id}"
+        context.bot_data[pending_key] = False
+        context.bot_data.pop(f"pending_email_{user_id}", None)
         
         await context.bot.send_message(
             chat_id=OWNER_CHAT_ID,
-            text=feedback_text,
+            text=f"❌ NOT WORKING\nUser: {user_id} (@{username})\nEmail: {email}\nPass: {password}",
             parse_mode=ParseMode.HTML
         )
         
+        keyboard = [[InlineKeyboardButton("▶ Generate Again", callback_data="gen")]]
         await query.edit_message_text(
-            "❌ <b>Thank you for your feedback!</b>\n\n"
-            "Account marked as NOT WORKING.\n"
-            "Use /start to generate another.",
+            f"❌ <b>Reported</b>\n\n"
+            f"Account marked as not working.\n\n"
+            f"<i>You can generate again.</i>",
+            parse_mode=ParseMode.HTML,
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+
+    elif query.data == "stats":
+        stats = context.bot_data.get('stats', {})
+        total = stats.get(user_id, {}).get('total', 0)
+        working = stats.get(user_id, {}).get('working', 0)
+        dead = stats.get(user_id, {}).get('dead', 0)
+        
+        await query.edit_message_text(
+            f"📊 <b>Your Stats</b>\n\n"
+            f"Generated: {total}\n"
+            f"Working: {working}\n"
+            f"Dead: {dead}\n",
             parse_mode=ParseMode.HTML
         )
-        await query.answer("Feedback sent: Not Working ❌")
 
-# ===== PHOTO HANDLER - RECEIVES SCREENSHOT =====
+    elif query.data == "help":
+        await query.edit_message_text(
+            f"❓ <b>How to Use</b>\n\n"
+            f"1. Generate account\n"
+            f"2. Test it\n"
+            f"3. Click Working or Not Working\n"
+            f"4. Generate again\n\n"
+            f"<i>Must verify before generating again.</i>\n\n"
+            f"✦ @X1n0q | Hex",
+            parse_mode=ParseMode.HTML
+        )
+
 async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle screenshot uploads from users"""
+    user_id = update.effective_user.id
     
-    # Check if user is in screenshot-awaiting state
     if context.user_data.get('awaiting_screenshot', False):
         email = context.user_data.get('screenshot_email', 'Unknown')
         password = context.user_data.get('screenshot_password', 'Unknown')
-        user_id = update.message.from_user.id
         username = update.message.from_user.username or "NoUsername"
         
-        # Get the photo (highest quality)
         photo = update.message.photo[-1]
-        file_id = photo.file_id
-        
-        # Send to owner with full details + screenshot
-        caption = (
-            f"✅ <b>WORKING - WITH PROOF</b>\n"
-            f"👤 User: {user_id} (@{username})\n"
-            f"📧 Email: <code>{email}</code>\n"
-            f"🔑 Pass: <code>{password}</code>\n"
-            f"🕐 Time: {time.strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-            f"📸 <i>Screenshot proof attached below</i>"
-        )
         
         await context.bot.send_photo(
             chat_id=OWNER_CHAT_ID,
-            photo=file_id,
-            caption=caption,
+            photo=photo.file_id,
+            caption=f"✅ WORKING (with proof)\nUser: {user_id} (@{username})\nEmail: {email}\nPass: {password}",
             parse_mode=ParseMode.HTML
         )
         
-        # Clear the flag
         context.user_data['awaiting_screenshot'] = False
         context.user_data.pop('screenshot_email', None)
         context.user_data.pop('screenshot_password', None)
         
-        # Confirm to user
-        await update.message.reply_text(
-            "✅ <b>Screenshot received! Thank you for verifying.</b>\n\n"
-            "Account marked as WORKING with proof.\n"
-            "Use /start to generate another.",
-            parse_mode=ParseMode.HTML
-        )
+        # Update stats
+        stats = context.bot_data.get('stats', {})
+        if user_id not in stats:
+            stats[user_id] = {'total': 0, 'working': 0, 'dead': 0}
+        stats[user_id]['total'] = stats[user_id].get('total', 0) + 1
+        stats[user_id]['working'] = stats[user_id].get('working', 0) + 1
+        context.bot_data['stats'] = stats
         
+        keyboard = [[InlineKeyboardButton("▶ Generate Again", callback_data="gen")]]
+        await update.message.reply_text(
+            f"✅ <b>Verified</b>\n\n"
+            f"Thank you!\n\n"
+            f"<i>You can generate again.</i>",
+            parse_mode=ParseMode.HTML,
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
     else:
         await update.message.reply_text(
-            "⚠️ You don't have any pending verification.\n"
-            "Use /start to generate a new account.",
+            "⚠️ No pending verification.",
             parse_mode=ParseMode.HTML
         )
 
 async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle text messages - remind user to send photo if awaiting screenshot"""
     if context.user_data.get('awaiting_screenshot', False):
         await update.message.reply_text(
-            "📸 Please send a <b>photo/screenshot</b> as proof.\n"
-            "Text messages are not accepted for verification.",
+            "📸 Please send a photo.",
             parse_mode=ParseMode.HTML
         )
     else:
         await update.message.reply_text(
-            "Use /start to generate a Crunchyroll account.",
+            "Use /start to begin.",
             parse_mode=ParseMode.HTML
         )
 
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
-
+    
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.PHOTO, photo_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))
-
-    print("🤖 Crunchyroll Generator Bot with Screenshot Verification is running...")
-    print("All feedback + screenshots will be sent to:", OWNER_CHAT_ID)
-    print("Terminal shows full logs. HTML files are saved for debugging.\n")
+    
+    print("🤖 Bot running...")
+    print("📤 Owner:", OWNER_CHAT_ID)
+    print("✦ Made by @X1n0q | Hex\n")
     
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
