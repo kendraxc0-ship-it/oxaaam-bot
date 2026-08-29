@@ -1,5 +1,5 @@
 # Made by @X1n0q | Hex
-# Crunchyroll Farmer Bot - Simple & Clean
+# Crunchyroll Farmer Bot - Pending Lock (NO EXCEPTIONS)
 
 import requests
 import random
@@ -55,7 +55,6 @@ def extract_krunshyrole():
         return None, None, None
 
     html = r.text
-    
     with open(f"oxaam_{int(time.time())}.html", "w", encoding="utf-8") as f:
         f.write(html)
 
@@ -106,7 +105,7 @@ async def loading_animation(status_msg):
         dot = dots[i % len(dots)]
         try:
             await status_msg.edit_text(
-                f"⚡ {stage}{dot}\n\n<i>Please wait...</i>",
+                f"🔄 {stage}{dot}\n\n<i>Please wait...</i>",
                 parse_mode=ParseMode.HTML
             )
         except:
@@ -117,6 +116,7 @@ async def loading_animation(status_msg):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     
+    # ALWAYS check pending first - NO EXCEPTIONS
     pending_key = f"pending_{user_id}"
     if context.bot_data.get(pending_key, False):
         email = context.bot_data.get(f"pending_email_{user_id}", "Unknown")
@@ -125,25 +125,27 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("❌ Not Working", callback_data="feedback_notworking")]
         ]
         await update.message.reply_text(
-            f"🔒 <b>Pending Verification</b>\n\n"
-            f"Account: <code>{email}</code>\n\n"
-            f"Please verify before generating another account.",
+            f"⚠️ 𝗣𝗲𝗻𝗱𝗶𝗻𝗴 𝗩𝗲𝗿𝗶𝗳𝗶𝗰𝗮𝘁𝗶𝗼𝗻\n\n"
+            f"𝗘𝗺𝗮𝗶𝗹: {email}\n\n"
+            f"𝗬𝗼𝘂 𝗠𝗨𝗦𝗧 𝗰𝗹𝗶𝗰𝗸 𝗪𝗼𝗿𝗸𝗶𝗻𝗴 𝗼𝗿 𝗡𝗼𝘁 𝗪𝗼𝗿𝗸𝗶𝗻𝗴\n"
+            f"𝗯𝗲𝗳𝗼𝗿𝗲 𝗴𝗲𝗻𝗲𝗿𝗮𝘁𝗶𝗻𝗴 𝗮𝗴𝗮𝗶𝗻.",
             parse_mode=ParseMode.HTML,
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
         return
-
+    
+    # ONLY show generate if NO pending
     keyboard = [
-        [InlineKeyboardButton("▶ Generate Account", callback_data="gen")],
-        [InlineKeyboardButton("📊 Stats", callback_data="stats")],
-        [InlineKeyboardButton("❓ Help", callback_data="help")]
+        [InlineKeyboardButton("▶ GENERATE", callback_data="gen")],
+        [InlineKeyboardButton("📊 STATS", callback_data="stats")],
+        [InlineKeyboardButton("❓ HELP", callback_data="help")]
     ]
     
     await update.message.reply_text(
-        f"🎬 <b>Crunchyroll Farmer</b>\n\n"
-        f"• {random.randint(7000, 8000):,} users online\n"
-        f"• 0.3s avg speed\n\n"
-        f"<i>Made by @X1n0q | Hex</i>",
+        f"𝗖𝗿𝘂𝗻𝗰𝗵𝘆𝗿𝗼𝗹𝗹 𝗙𝗮𝗿𝗺𝗲𝗿\n\n"
+        f"𝟳,𝟱𝟲𝟵 𝘂𝘀𝗲𝗿𝘀 𝗼𝗻𝗹𝗶𝗻𝗲\n"
+        f"𝟬.𝟯𝘀 𝗮𝘃𝗴 𝘀𝗽𝗲𝗲𝗱\n\n"
+        f"[@X1n0q]",
         parse_mode=ParseMode.HTML,
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
@@ -155,6 +157,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if query.data == "gen":
         pending_key = f"pending_{user_id}"
+        
+        # BLOCK if pending
         if context.bot_data.get(pending_key, False):
             email = context.bot_data.get(f"pending_email_{user_id}", "Unknown")
             keyboard = [
@@ -162,14 +166,15 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 [InlineKeyboardButton("❌ Not Working", callback_data="feedback_notworking")]
             ]
             await query.edit_message_text(
-                f"🔒 <b>Pending Verification</b>\n\n"
-                f"Account: <code>{email}</code>\n\n"
-                f"Please verify first.",
+                f"⚠️ 𝗣𝗲𝗻𝗱𝗶𝗻𝗴 𝗩𝗲𝗿𝗶𝗳𝗶𝗰𝗮𝘁𝗶𝗼𝗻\n\n"
+                f"𝗘𝗺𝗮𝗶𝗹: {email}\n\n"
+                f"𝗬𝗼𝘂 𝗠𝗨𝗦𝗧 𝘃𝗲𝗿𝗶𝗳𝘆 𝗳𝗶𝗿𝘀𝘁!",
                 parse_mode=ParseMode.HTML,
                 reply_markup=InlineKeyboardMarkup(keyboard)
             )
             return
 
+        # Generate if NO pending
         status = await query.message.reply_text("⚡ Generating...", parse_mode=ParseMode.HTML)
         anim = asyncio.create_task(loading_animation(status))
         
@@ -185,6 +190,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             context.user_data['last_email'] = email
             context.user_data['last_password'] = password
             
+            # SET PENDING - LOCK THE USER
             context.bot_data[pending_key] = True
             context.bot_data[f"pending_email_{user_id}"] = email
 
@@ -194,19 +200,19 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ]
             
             await status.edit_text(
-                f"✅ <b>Account Ready</b>\n\n"
-                f"📧 <code>{email}</code>\n"
-                f"🔑 <code>{password}</code>\n\n"
-                f"⚠️ Shared account\n\n"
-                f"<i>Is it working?</i>",
+                f"✅ 𝗔𝗰𝗰𝗼𝘂𝗻𝘁 𝗥𝗲𝗮𝗱𝘆\n\n"
+                f"𝗘𝗺𝗮𝗶𝗹: {email}\n"
+                f"𝗣𝗮𝘀𝘀: {password}\n\n"
+                f"⚠️ 𝗦𝗵𝗮𝗿𝗲𝗱 𝗮𝗰𝗰𝗼𝘂𝗻𝘁\n\n"
+                f"𝗜𝘀 𝗶𝘁 𝘄𝗼𝗿𝗸𝗶𝗻𝗴?\n\n"
+                f"<i>You MUST click Working or Not Working</i>",
                 parse_mode=ParseMode.HTML,
                 reply_markup=InlineKeyboardMarkup(keyboard)
             )
         else:
             await status.edit_text(
-                "❌ <b>Failed</b>\n\n"
-                "Could not generate account.\n"
-                "Please try again in a few minutes.",
+                "❌ 𝗙𝗮𝗶𝗹𝗲𝗱\n\n"
+                "𝗧𝗿𝘆 𝗮𝗴𝗮𝗶𝗻 𝗶𝗻 𝗮 𝗳𝗲𝘄 𝗺𝗶𝗻𝘂𝘁𝗲𝘀.",
                 parse_mode=ParseMode.HTML
             )
 
@@ -218,14 +224,15 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data['screenshot_email'] = email
         context.user_data['screenshot_password'] = password
         
+        # UNLOCK after feedback
         pending_key = f"pending_{user_id}"
         context.bot_data[pending_key] = False
         context.bot_data.pop(f"pending_email_{user_id}", None)
         
         await query.edit_message_text(
-            f"📸 <b>Send Screenshot</b>\n\n"
-            f"Show proof it's working.\n\n"
-            f"📩 {email}",
+            f"📸 𝗦𝗲𝗻𝗱 𝗦𝗰𝗿𝗲𝗲𝗻𝘀𝗵𝗼𝘁\n\n"
+            f"𝗦𝗵𝗼𝘄 𝗽𝗿𝗼𝗼𝗳 𝗶𝘁'𝘀 𝘄𝗼𝗿𝗸𝗶𝗻𝗴.\n\n"
+            f"𝗘𝗺𝗮𝗶𝗹: {email}",
             parse_mode=ParseMode.HTML
         )
 
@@ -234,21 +241,22 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         password = context.user_data.get('last_password', 'Unknown')
         username = query.from_user.username or "NoUsername"
         
+        # UNLOCK after feedback
         pending_key = f"pending_{user_id}"
         context.bot_data[pending_key] = False
         context.bot_data.pop(f"pending_email_{user_id}", None)
         
+        # Send to owner
         await context.bot.send_message(
             chat_id=OWNER_CHAT_ID,
-            text=f"❌ NOT WORKING\nUser: {user_id} (@{username})\nEmail: {email}\nPass: {password}",
+            text=f"❌ 𝗡𝗢𝗧 𝗪𝗢𝗥𝗞𝗜𝗡𝗚\n\n𝗨𝘀𝗲𝗿: {user_id} (@{username})\n𝗘𝗺𝗮𝗶𝗹: {email}\n𝗣𝗮𝘀𝘀: {password}",
             parse_mode=ParseMode.HTML
         )
         
-        keyboard = [[InlineKeyboardButton("▶ Generate Again", callback_data="gen")]]
+        keyboard = [[InlineKeyboardButton("▶ GENERATE", callback_data="gen")]]
         await query.edit_message_text(
-            f"❌ <b>Reported</b>\n\n"
-            f"Account marked as not working.\n\n"
-            f"<i>You can generate again.</i>",
+            f"❌ 𝗥𝗲𝗽𝗼𝗿𝘁𝗲𝗱\n\n"
+            f"𝗬𝗼𝘂 𝗰𝗮𝗻 𝗻𝗼𝘄 𝗴𝗲𝗻𝗲𝗿𝗮𝘁𝗲 𝗮𝗴𝗮𝗶𝗻.",
             parse_mode=ParseMode.HTML,
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
@@ -260,21 +268,20 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         dead = stats.get(user_id, {}).get('dead', 0)
         
         await query.edit_message_text(
-            f"📊 <b>Your Stats</b>\n\n"
-            f"Generated: {total}\n"
-            f"Working: {working}\n"
-            f"Dead: {dead}\n",
+            f"📊 𝗠𝘆 𝗦𝘁𝗮𝘁𝘀\n\n"
+            f"𝗚𝗲𝗻𝗲𝗿𝗮𝘁𝗲𝗱: {total}\n"
+            f"𝗪𝗼𝗿𝗸𝗶𝗻𝗴: {working}\n"
+            f"𝗗𝗲𝗮𝗱: {dead}",
             parse_mode=ParseMode.HTML
         )
 
     elif query.data == "help":
         await query.edit_message_text(
-            f"❓ <b>How to Use</b>\n\n"
-            f"1. Generate account\n"
-            f"2. Test it\n"
-            f"3. Click Working or Not Working\n"
-            f"4. Generate again\n\n"
-            f"<i>Must verify before generating again.</i>\n\n"
+            f"❓ 𝗛𝗼𝘄 𝘁𝗼 𝗨𝘀𝗲\n\n"
+            f"1. 𝗚𝗲𝗻𝗲𝗿𝗮𝘁𝗲 𝗮𝗰𝗰𝗼𝘂𝗻𝘁\n"
+            f"2. 𝗧𝗲𝘀𝘁 𝗶𝘁\n"
+            f"3. 𝗖𝗹𝗶𝗰𝗸 𝗪𝗼𝗿𝗸𝗶𝗻𝗴 𝗼𝗿 𝗡𝗼𝘁 𝗪𝗼𝗿𝗸𝗶𝗻𝗴\n"
+            f"4. 𝗚𝗲𝗻𝗲𝗿𝗮𝘁𝗲 𝗮𝗴𝗮𝗶𝗻\n\n"
             f"✦ @X1n0q | Hex",
             parse_mode=ParseMode.HTML
         )
@@ -292,7 +299,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_photo(
             chat_id=OWNER_CHAT_ID,
             photo=photo.file_id,
-            caption=f"✅ WORKING (with proof)\nUser: {user_id} (@{username})\nEmail: {email}\nPass: {password}",
+            caption=f"✅ 𝗪𝗢𝗥𝗞𝗜𝗡𝗚 (𝗽𝗿𝗼𝗼𝗳)\n\n𝗨𝘀𝗲𝗿: {user_id} (@{username})\n𝗘𝗺𝗮𝗶𝗹: {email}\n𝗣𝗮𝘀𝘀: {password}",
             parse_mode=ParseMode.HTML
         )
         
@@ -308,31 +315,52 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         stats[user_id]['working'] = stats[user_id].get('working', 0) + 1
         context.bot_data['stats'] = stats
         
-        keyboard = [[InlineKeyboardButton("▶ Generate Again", callback_data="gen")]]
+        keyboard = [[InlineKeyboardButton("▶ GENERATE", callback_data="gen")]]
         await update.message.reply_text(
-            f"✅ <b>Verified</b>\n\n"
-            f"Thank you!\n\n"
-            f"<i>You can generate again.</i>",
+            f"✅ 𝗩𝗲𝗿𝗶𝗳𝗶𝗲𝗱\n\n"
+            f"𝗬𝗼𝘂 𝗰𝗮𝗻 𝗻𝗼𝘄 𝗴𝗲𝗻𝗲𝗿𝗮𝘁𝗲 𝗮𝗴𝗮𝗶𝗻.",
             parse_mode=ParseMode.HTML,
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
     else:
         await update.message.reply_text(
-            "⚠️ No pending verification.",
+            f"⚠️ 𝗣𝗹𝗲𝗮𝘀𝗲 𝘀𝗲𝗻𝗱 𝗮 𝘃𝗮𝗹𝗶𝗱 𝗽𝗵𝗼𝘁𝗼 𝗼𝗻𝗹𝘆.\n\n"
+            f"𝗬𝗼𝘂𝗿 𝘀𝗰𝗿𝗲𝗲𝗻𝘀𝗵𝗼𝘁 𝗺𝘂𝘀𝘁 𝗯𝗲 𝗮 𝗝𝗣𝗘𝗚 𝗼𝗿 𝗣𝗡𝗚 𝗳𝗶𝗹𝗲.",
             parse_mode=ParseMode.HTML
         )
 
 async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    
     if context.user_data.get('awaiting_screenshot', False):
         await update.message.reply_text(
-            "📸 Please send a photo.",
+            f"⚠️ 𝗣𝗹𝗲𝗮𝘀𝗲 𝘀𝗲𝗻𝗱 𝗮 𝗽𝗵𝗼𝘁𝗼.",
             parse_mode=ParseMode.HTML
         )
-    else:
+        return
+    
+    # ALWAYS check pending first
+    pending_key = f"pending_{user_id}"
+    if context.bot_data.get(pending_key, False):
+        email = context.bot_data.get(f"pending_email_{user_id}", "Unknown")
+        keyboard = [
+            [InlineKeyboardButton("✅ Working", callback_data="feedback_working")],
+            [InlineKeyboardButton("❌ Not Working", callback_data="feedback_notworking")]
+        ]
         await update.message.reply_text(
-            "Use /start to begin.",
-            parse_mode=ParseMode.HTML
+            f"⚠️ 𝗣𝗲𝗻𝗱𝗶𝗻𝗴 𝗩𝗲𝗿𝗶𝗳𝗶𝗰𝗮𝘁𝗶𝗼𝗻\n\n"
+            f"𝗘𝗺𝗮𝗶𝗹: {email}\n\n"
+            f"𝗬𝗼𝘂 𝗠𝗨𝗦𝗧 𝗰𝗹𝗶𝗰𝗸 𝗪𝗼𝗿𝗸𝗶𝗻𝗴 𝗼𝗿 𝗡𝗼𝘁 𝗪𝗼𝗿𝗸𝗶𝗻𝗴\n"
+            f"𝗯𝗲𝗳𝗼𝗿𝗲 𝗴𝗲𝗻𝗲𝗿𝗮𝘁𝗶𝗻𝗴 𝗮𝗴𝗮𝗶𝗻.",
+            parse_mode=ParseMode.HTML,
+            reply_markup=InlineKeyboardMarkup(keyboard)
         )
+        return
+    
+    await update.message.reply_text(
+        f"𝗨𝘀𝗲 /𝘀𝘁𝗮𝗿𝘁 𝘁𝗼 𝗯𝗲𝗴𝗶𝗻.",
+        parse_mode=ParseMode.HTML
+    )
 
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
