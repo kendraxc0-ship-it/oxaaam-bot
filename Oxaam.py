@@ -17,8 +17,8 @@ from telegram.constants import ParseMode
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 MAIN_TOKEN = "8516833981:AAGfsgG0vDzOzLNC9viruXa9l3wCz53LDOQ"
-FEEDBACK_TOKEN = "8815684366:AAGuiGnto1SvfwAZNuFUtzt2yWMNLZJZ_X8" @BotFather
-ADMIN_CHAT_ID = "7305141058"  # YOUR TELEGRAM ID
+FEEDBACK_TOKEN = "8815684366:AAGuiGnto1SvfwAZNuFUtzt2yWMNLZJZ_X8"  # <-- REMOVED @BotFather
+ADMIN_CHAT_ID = 7305141058  # <-- REMOVED QUOTES
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -268,14 +268,14 @@ async def main_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 parse_mode=ParseMode.HTML
             )
 
-# ── FEEDBACK HANDLERS (SAME BOT) ──────────────────────────────────────────
+# ── FEEDBACK HANDLERS ──────────────────────────────────────────────────────
 async def fb_working(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     user_id = query.from_user.id
     target_id = int(query.data.split("_")[2])
     
-    if str(user_id) != str(target_id) and str(user_id) != ADMIN_CHAT_ID:
+    if str(user_id) != str(target_id) and str(user_id) != str(ADMIN_CHAT_ID):
         await query.answer("This is for the original requester only.", show_alert=True)
         return
     
@@ -302,7 +302,7 @@ async def fb_notworking(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = query.from_user.id
     target_id = int(query.data.split("_")[2])
     
-    if str(user_id) != str(target_id) and str(user_id) != ADMIN_CHAT_ID:
+    if str(user_id) != str(target_id) and str(user_id) != str(ADMIN_CHAT_ID):
         await query.answer("This is for the original requester only.", show_alert=True)
         return
     
@@ -338,7 +338,7 @@ async def reason_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reason = parts[1]
     target_id = int(parts[2]) if len(parts) > 2 else user_id
     
-    if str(user_id) != str(target_id) and str(user_id) != ADMIN_CHAT_ID:
+    if str(user_id) != str(target_id) and str(user_id) != str(ADMIN_CHAT_ID):
         await query.answer("Not yours!", show_alert=True)
         return
     
@@ -443,13 +443,7 @@ async def send_feedback_to_admin(message, data, status, reason, photo_path=None)
         except:
             pass
 
-# ── RUN BOTH BOTS ──────────────────────────────────────────────────────────
-def run_bot(token, handlers):
-    app = Application.builder().token(token).build()
-    for handler in handlers:
-        app.add_handler(handler)
-    app.run_polling(allowed_updates=Update.ALL_TYPES)
-
+# ── RUN BOT ──────────────────────────────────────────────────────────────────
 async def run_main_bot():
     handlers = [
         CommandHandler("start", main_start),
@@ -465,19 +459,18 @@ async def run_main_bot():
         app.add_handler(handler)
     
     print("🤖 Main Bot is running...")
+    print(f"📊 Admin ID: {ADMIN_CHAT_ID}")
     await app.initialize()
     await app.start()
     await app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 def main():
-    print("🚀 Starting both bots...")
-    print(f"📊 Admin ID: {ADMIN_CHAT_ID}")
+    print("🚀 Starting bot...")
     print("\n")
-    
     try:
         asyncio.run(run_main_bot())
     except KeyboardInterrupt:
-        print("\n🛑 Bots stopped.")
+        print("\n🛑 Bot stopped.")
 
 if __name__ == "__main__":
     main()
