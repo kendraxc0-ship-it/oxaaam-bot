@@ -1,5 +1,5 @@
 #Made By @SajagOG | @KindCoders On Telegram. Site Used : Oxaam.com Auto Sign Up & Auto Service Extractor
-# UPGRADED v2: Mandatory feedback for BOTH outcomes + /start lock until feedback submitted
+# UPGRADED v3: ZERO TEXT ESCAPES - PHOTO ONLY, LOCK TIGHT
 
 import requests
 import random
@@ -139,14 +139,15 @@ async def loading_animation(status_msg):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     
-    # ===== FEEDBACK LOCK: If pending feedback exists, block new generation =====
+    # ===== HARDCORE LOCK: Only show pending message, nothing else =====
     if context.user_data.get('pending_feedback', False):
         await update.message.reply_text(
-            "⛔ <b>You have pending feedback for the last generated account.</b>\n\n"
-            "Please complete the feedback process first:\n"
-            "• If it worked → send a screenshot proof\n"
-            "• If it didn't work → send a screenshot or reason\n\n"
-            "Use /cancel_feedback if you want to discard and start fresh.",
+            "⛔ <b>PENDING FEEDBACK REQUIRED</b>\n\n"
+            "You must submit feedback for the last generated account before you can generate a new one.\n\n"
+            "📸 Please send a <b>PHOTO</b> as proof:\n"
+            "• ✅ Working → screenshot of working account\n"
+            "• ❌ Not Working → screenshot showing the issue\n\n"
+            "<i>No text messages accepted. Only photos.</i>",
             parse_mode=ParseMode.HTML
         )
         return
@@ -170,7 +171,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Double-check lock
         if context.user_data.get('pending_feedback', False):
             await query.edit_message_text(
-                "⛔ You have pending feedback. Complete it first or use /cancel_feedback.",
+                "⛔ PENDING FEEDBACK - Send a photo to unlock.",
                 parse_mode=ParseMode.HTML
             )
             return
@@ -193,7 +194,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             context.user_data['last_password'] = password
             context.user_data['last_service'] = service
             context.user_data['pending_feedback'] = True
-            context.user_data['awaiting_screenshot'] = False  # reset flag
 
             result_text = (
                 f"✅ <b>Crunchyroll Premium Generated!</b>\n\n"
@@ -219,6 +219,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 reply_markup=reply_markup
             )
         else:
+            # If generation fails, don't set pending flag
             await status_msg.edit_text(
                 "❌ <b>Could not extract Krunshyrole credentials this time.</b>\n\n"
                 "The site may have updated. Try again in a few minutes.\n"
@@ -230,46 +231,39 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif query.data == "feedback_working":
         email = context.user_data.get('last_email', 'Unknown')
         
-        context.user_data['awaiting_screenshot'] = True
-        context.user_data['screenshot_email'] = email
-        context.user_data['screenshot_password'] = context.user_data.get('last_password', 'Unknown')
-        context.user_data['feedback_type'] = 'working'  # track type
+        context.user_data['feedback_type'] = 'working'
         
         await query.edit_message_text(
             f"✅ <b>Great! The account is working.</b>\n\n"
-            f"💬 Please send a screenshot of the account working "
+            f"📸 <b>Send a screenshot</b> of the account working "
             f"(Crunchyroll dashboard, anime playing, or any proof).\n\n"
-            f"Just send the image here.\n"
+            f"<i>Only photos will be accepted.</i>\n"
             f"{time.strftime('%I:%M %p')}",
             parse_mode=ParseMode.HTML
         )
         await query.answer("Please send screenshot proof")
 
-    # ===== NOT WORKING: NOW ALSO ASKS FOR SCREENSHOT (mandatory) =====
+    # ===== NOT WORKING: ASK FOR SCREENSHOT =====
     elif query.data == "feedback_notworking":
         email = context.user_data.get('last_email', 'Unknown')
         
-        context.user_data['awaiting_screenshot'] = True
-        context.user_data['screenshot_email'] = email
-        context.user_data['screenshot_password'] = context.user_data.get('last_password', 'Unknown')
-        context.user_data['feedback_type'] = 'not_working'  # track type
+        context.user_data['feedback_type'] = 'not_working'
         
         await query.edit_message_text(
-            f"❌ <b>Account not working? Please confirm.</b>\n\n"
-            f"💬 Send a screenshot showing the issue (login error, expired, etc.) "
-            f"or a text reason if you cannot screenshot.\n\n"
-            f"Just send the image or type your reason here.",
+            f"❌ <b>Account not working?</b>\n\n"
+            f"📸 <b>Send a screenshot</b> showing the issue (login error, expired, etc.).\n\n"
+            f"<i>Only photos will be accepted.</i>",
             parse_mode=ParseMode.HTML
         )
-        await query.answer("Please send proof or reason")
+        await query.answer("Please send screenshot proof")
 
-# ===== PHOTO HANDLER - RECEIVES SCREENSHOT (for BOTH outcomes) =====
+# ===== PHOTO HANDLER - ONLY WAY TO CLEAR LOCK =====
 async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle screenshot uploads for both working and not working"""
+    """Only photos can clear pending feedback"""
     
-    if context.user_data.get('awaiting_screenshot', False):
-        email = context.user_data.get('screenshot_email', 'Unknown')
-        password = context.user_data.get('screenshot_password', 'Unknown')
+    if context.user_data.get('pending_feedback', False):
+        email = context.user_data.get('last_email', 'Unknown')
+        password = context.user_data.get('last_password', 'Unknown')
         user_id = update.message.from_user.id
         username = update.message.from_user.username or "NoUsername"
         feedback_type = context.user_data.get('feedback_type', 'unknown')
@@ -286,7 +280,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             status_text = "NOT WORKING - WITH PROOF"
         else:
             status_emoji = "⚠️"
-            status_text = "FEEDBACK (unknown type)"
+            status_text = "FEEDBACK RECEIVED"
         
         caption = (
             f"{status_emoji} <b>{status_text}</b>\n"
@@ -304,100 +298,39 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode=ParseMode.HTML
         )
         
-        # Clear all feedback flags
-        context.user_data['awaiting_screenshot'] = False
+        # Clear all flags - UNLOCK
         context.user_data['pending_feedback'] = False
-        context.user_data.pop('screenshot_email', None)
-        context.user_data.pop('screenshot_password', None)
         context.user_data.pop('feedback_type', None)
         
         # Confirm to user
         await update.message.reply_text(
-            f"{status_emoji} <b>Screenshot received! Thank you for your feedback.</b>\n\n"
+            f"{status_emoji} <b>Feedback received! Thank you.</b>\n\n"
             "You can now generate a new account using /start.",
             parse_mode=ParseMode.HTML
         )
         
     else:
         await update.message.reply_text(
-            "⚠️ You don't have any pending verification.\n"
+            "⚠️ You don't have any pending feedback.\n"
             "Use /start to generate a new account.",
             parse_mode=ParseMode.HTML
         )
 
-# ===== TEXT HANDLER - ALLOWS TEXT REASON FOR "NOT WORKING" =====
+# ===== TEXT HANDLER - COMPLETELY BLOCKED DURING PENDING =====
 async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle text messages - for not working, accept reason text; otherwise remind"""
+    """Text is NEVER accepted - only photos"""
     
-    if context.user_data.get('awaiting_screenshot', False):
-        feedback_type = context.user_data.get('feedback_type', 'unknown')
-        
-        # If feedback is "not_working", accept text reason
-        if feedback_type == 'not_working':
-            email = context.user_data.get('screenshot_email', 'Unknown')
-            password = context.user_data.get('screenshot_password', 'Unknown')
-            user_id = update.message.from_user.id
-            username = update.message.from_user.username or "NoUsername"
-            reason = update.message.text
-            
-            caption = (
-                f"❌ <b>NOT WORKING - TEXT REASON</b>\n"
-                f"👤 User: {user_id} (@{username})\n"
-                f"📧 Email: <code>{email}</code>\n"
-                f"🔑 Pass: <code>{password}</code>\n"
-                f"🕐 Time: {time.strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-                f"📝 <i>Reason:</i> {reason}"
-            )
-            
-            await context.bot.send_message(
-                chat_id=OWNER_CHAT_ID,
-                text=caption,
-                parse_mode=ParseMode.HTML
-            )
-            
-            # Clear flags
-            context.user_data['awaiting_screenshot'] = False
-            context.user_data['pending_feedback'] = False
-            context.user_data.pop('screenshot_email', None)
-            context.user_data.pop('screenshot_password', None)
-            context.user_data.pop('feedback_type', None)
-            
-            await update.message.reply_text(
-                "❌ <b>Reason received. Thank you for your feedback!</b>\n\n"
-                "You can now generate a new account using /start.",
-                parse_mode=ParseMode.HTML
-            )
-        else:
-            # If working, force screenshot
-            await update.message.reply_text(
-                "📸 For 'Working' feedback, please send a <b>photo/screenshot</b> as proof.\n"
-                "Text is only accepted for 'Not Working' reports.",
-                parse_mode=ParseMode.HTML
-            )
+    if context.user_data.get('pending_feedback', False):
+        await update.message.reply_text(
+            "⛔ <b>ONLY PHOTOS ACCEPTED</b>\n\n"
+            "Please send a <b>screenshot/photo</b> as feedback.\n"
+            "Text messages are not accepted for verification.\n\n"
+            "Send a photo to unlock.",
+            parse_mode=ParseMode.HTML
+        )
     else:
         await update.message.reply_text(
             "Use /start to generate a Crunchyroll account.",
-            parse_mode=ParseMode.HTML
-        )
-
-# ===== CANCEL COMMAND TO RESET PENDING FEEDBACK =====
-async def cancel_feedback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Allow user to cancel pending feedback and unlock /start"""
-    if context.user_data.get('pending_feedback', False):
-        context.user_data['pending_feedback'] = False
-        context.user_data['awaiting_screenshot'] = False
-        context.user_data.pop('screenshot_email', None)
-        context.user_data.pop('screenshot_password', None)
-        context.user_data.pop('feedback_type', None)
-        
-        await update.message.reply_text(
-            "🗑️ <b>Pending feedback cancelled.</b>\n\n"
-            "You can now generate a new account using /start.",
-            parse_mode=ParseMode.HTML
-        )
-    else:
-        await update.message.reply_text(
-            "You have no pending feedback to cancel.",
             parse_mode=ParseMode.HTML
         )
 
@@ -405,14 +338,13 @@ def main():
     app = Application.builder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("cancel_feedback", cancel_feedback))
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.PHOTO, photo_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))
 
-    print("🤖 Crunchyroll Generator Bot v2 with MANDATORY feedback for BOTH outcomes...")
-    print("All feedback + screenshots will be sent to:", OWNER_CHAT_ID)
-    print("Users are LOCKED from /start until feedback is submitted.\n")
+    print("🤖 Crunchyroll Generator Bot v3 - PHOTO ONLY, NO TEXT ESCAPES...")
+    print("All feedback photos will be sent to:", OWNER_CHAT_ID)
+    print("Users are LOCKED from /start until they send a photo.\n")
     
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
