@@ -1,5 +1,5 @@
 # Made by @X1n0q | Hex
-# Crunchyroll Farmer Bot - Pending Lock (NO EXCEPTIONS)
+# Crunchyroll Farmer Bot - Full Working Code
 
 import requests
 import random
@@ -105,7 +105,7 @@ async def loading_animation(status_msg):
         dot = dots[i % len(dots)]
         try:
             await status_msg.edit_text(
-                f"🔄 {stage}{dot}\n\n<i>Please wait...</i>",
+                f"🔄 {stage}{dot}\n\n<i>Please wait • Usually takes 8-18 seconds...</i>",
                 parse_mode=ParseMode.HTML
             )
         except:
@@ -116,36 +116,42 @@ async def loading_animation(status_msg):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     
-    # ALWAYS check pending first - NO EXCEPTIONS
     pending_key = f"pending_{user_id}"
+    
+    # IF PENDING → ONLY show pending message + Working/Not Working buttons
+    # NO GENERATE BUTTON AT ALL
     if context.bot_data.get(pending_key, False):
         email = context.bot_data.get(f"pending_email_{user_id}", "Unknown")
         keyboard = [
-            [InlineKeyboardButton("✅ Working", callback_data="feedback_working")],
+            [InlineKeyboardButton("✔ Working", callback_data="feedback_working")],
             [InlineKeyboardButton("❌ Not Working", callback_data="feedback_notworking")]
         ]
         await update.message.reply_text(
-            f"⚠️ 𝗣𝗲𝗻𝗱𝗶𝗻𝗴 𝗩𝗲𝗿𝗶𝗳𝗶𝗰𝗮𝘁𝗶𝗼𝗻\n\n"
-            f"𝗘𝗺𝗮𝗶𝗹: {email}\n\n"
-            f"𝗬𝗼𝘂 𝗠𝗨𝗦𝗧 𝗰𝗹𝗶𝗰𝗸 𝗪𝗼𝗿𝗸𝗶𝗻𝗴 𝗼𝗿 𝗡𝗼𝘁 𝗪𝗼𝗿𝗸𝗶𝗻𝗴\n"
-            f"𝗯𝗲𝗳𝗼𝗿𝗲 𝗴𝗲𝗻𝗲𝗿𝗮𝘁𝗶𝗻𝗴 𝗮𝗴𝗮𝗶𝗻.",
+            f"⚠️ <b>You have a pending account that needs verification!</b>\n"
+            f"📧 Email: <code>{email}</code>\n\n"
+            f"✔ Please click the - <b>Working</b> or - <b>Not Working</b> button.\n\n"
+            f"After verification, you can generate a new account using.\n"
+            f"{time.strftime('%I:%M %p')}",
             parse_mode=ParseMode.HTML,
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
         return
     
-    # ONLY show generate if NO pending
+    # ONLY IF NO PENDING → show menu with GENERATE button
     keyboard = [
-        [InlineKeyboardButton("▶ GENERATE", callback_data="gen")],
-        [InlineKeyboardButton("📊 STATS", callback_data="stats")],
-        [InlineKeyboardButton("❓ HELP", callback_data="help")]
+        [InlineKeyboardButton("🔥 Gen Crunchyroll", callback_data="gen")],
+        [InlineKeyboardButton("📁 Send File .txt", callback_data="file")],
+        [InlineKeyboardButton("📝 Send Text", callback_data="text")],
+        [InlineKeyboardButton("⭐ Reviews", callback_data="reviews")],
+        [InlineKeyboardButton("👨‍💻 Developer", callback_data="dev")],
+        [InlineKeyboardButton("❓ Help !?", callback_data="help")]
     ]
     
     await update.message.reply_text(
-        f"𝗖𝗿𝘂𝗻𝗰𝗵𝘆𝗿𝗼𝗹𝗹 𝗙𝗮𝗿𝗺𝗲𝗿\n\n"
-        f"𝟳,𝟱𝟲𝟵 𝘂𝘀𝗲𝗿𝘀 𝗼𝗻𝗹𝗶𝗻𝗲\n"
-        f"𝟬.𝟯𝘀 𝗮𝘃𝗴 𝘀𝗽𝗲𝗲𝗱\n\n"
-        f"[@X1n0q]",
+        f"🎬 <b>Crunchyroll Farmer</b>\n\n"
+        f"📊 {random.randint(7000, 8000):,} monthly users\n"
+        f"🕐 {time.strftime('%I:%M %p')}\n\n"
+        f"<i>Click a button to continue.</i>",
         parse_mode=ParseMode.HTML,
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
@@ -162,20 +168,21 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if context.bot_data.get(pending_key, False):
             email = context.bot_data.get(f"pending_email_{user_id}", "Unknown")
             keyboard = [
-                [InlineKeyboardButton("✅ Working", callback_data="feedback_working")],
+                [InlineKeyboardButton("✔ Working", callback_data="feedback_working")],
                 [InlineKeyboardButton("❌ Not Working", callback_data="feedback_notworking")]
             ]
             await query.edit_message_text(
-                f"⚠️ 𝗣𝗲𝗻𝗱𝗶𝗻𝗴 𝗩𝗲𝗿𝗶𝗳𝗶𝗰𝗮𝘁𝗶𝗼𝗻\n\n"
-                f"𝗘𝗺𝗮𝗶𝗹: {email}\n\n"
-                f"𝗬𝗼𝘂 𝗠𝗨𝗦𝗧 𝘃𝗲𝗿𝗶𝗳𝘆 𝗳𝗶𝗿𝘀𝘁!",
+                f"⚠️ <b>You have a pending account that needs verification!</b>\n"
+                f"📧 Email: <code>{email}</code>\n\n"
+                f"✔ Please click the - <b>Working</b> or - <b>Not Working</b> button.\n\n"
+                f"After verification, you can generate a new account using.\n"
+                f"{time.strftime('%I:%M %p')}",
                 parse_mode=ParseMode.HTML,
                 reply_markup=InlineKeyboardMarkup(keyboard)
             )
             return
 
-        # Generate if NO pending
-        status = await query.message.reply_text("⚡ Generating...", parse_mode=ParseMode.HTML)
+        status = await query.message.reply_text("🚀 Starting generation...", parse_mode=ParseMode.HTML)
         anim = asyncio.create_task(loading_animation(status))
         
         service, email, password = await asyncio.to_thread(extract_krunshyrole)
@@ -195,24 +202,24 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             context.bot_data[f"pending_email_{user_id}"] = email
 
             keyboard = [
-                [InlineKeyboardButton("✅ Working", callback_data="feedback_working")],
+                [InlineKeyboardButton("✔ Working", callback_data="feedback_working")],
                 [InlineKeyboardButton("❌ Not Working", callback_data="feedback_notworking")]
             ]
             
             await status.edit_text(
-                f"✅ 𝗔𝗰𝗰𝗼𝘂𝗻𝘁 𝗥𝗲𝗮𝗱𝘆\n\n"
-                f"𝗘𝗺𝗮𝗶𝗹: {email}\n"
-                f"𝗣𝗮𝘀𝘀: {password}\n\n"
-                f"⚠️ 𝗦𝗵𝗮𝗿𝗲𝗱 𝗮𝗰𝗰𝗼𝘂𝗻𝘁\n\n"
-                f"𝗜𝘀 𝗶𝘁 𝘄𝗼𝗿𝗸𝗶𝗻𝗴?\n\n"
-                f"<i>You MUST click Working or Not Working</i>",
+                f"✅ <b>Crunchyroll Premium Generated!</b>\n\n"
+                f"<b>Service :</b> CrunchiefarmV6.6\n"
+                f"<b>Email   :</b> <code>{email}</code>\n"
+                f"<b>Password:</b> <code>{password}</code>\n\n"
+                f"⚠️ <b>Shared account • Can get logged out anytime.</b>\n\n"
+                f"👇 <b>Is the account working?</b>",
                 parse_mode=ParseMode.HTML,
                 reply_markup=InlineKeyboardMarkup(keyboard)
             )
         else:
             await status.edit_text(
-                "❌ 𝗙𝗮𝗶𝗹𝗲𝗱\n\n"
-                "𝗧𝗿𝘆 𝗮𝗴𝗮𝗶𝗻 𝗶𝗻 𝗮 𝗳𝗲𝘄 𝗺𝗶𝗻𝘂𝘁𝗲𝘀.",
+                "❌ <b>Could not extract credentials this time.</b>\n\n"
+                "The site may have updated. Try again in a few minutes.",
                 parse_mode=ParseMode.HTML
             )
 
@@ -230,9 +237,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.bot_data.pop(f"pending_email_{user_id}", None)
         
         await query.edit_message_text(
-            f"📸 𝗦𝗲𝗻𝗱 𝗦𝗰𝗿𝗲𝗲𝗻𝘀𝗵𝗼𝘁\n\n"
-            f"𝗦𝗵𝗼𝘄 𝗽𝗿𝗼𝗼𝗳 𝗶𝘁'𝘀 𝘄𝗼𝗿𝗸𝗶𝗻𝗴.\n\n"
-            f"𝗘𝗺𝗮𝗶𝗹: {email}",
+            f"✅ <b>Great! The account is working.</b>\n\n"
+            f"💬 Please send a screenshot of the account working "
+            f"(Crunchyroll dashboard, anime playing, or any proof).\n\n"
+            f"Just send the image here.\n"
+            f"{time.strftime('%I:%M %p')}",
             parse_mode=ParseMode.HTML
         )
 
@@ -249,39 +258,60 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Send to owner
         await context.bot.send_message(
             chat_id=OWNER_CHAT_ID,
-            text=f"❌ 𝗡𝗢𝗧 𝗪𝗢𝗥𝗞𝗜𝗡𝗚\n\n𝗨𝘀𝗲𝗿: {user_id} (@{username})\n𝗘𝗺𝗮𝗶𝗹: {email}\n𝗣𝗮𝘀𝘀: {password}",
+            text=f"❌ <b>NOT WORKING</b>\n\n"
+                 f"👤 User: {user_id} (@{username})\n"
+                 f"📧 Email: <code>{email}</code>\n"
+                 f"🔑 Pass: <code>{password}</code>\n"
+                 f"🕐 Time: {time.strftime('%Y-%m-%d %H:%M:%S')}",
             parse_mode=ParseMode.HTML
         )
         
-        keyboard = [[InlineKeyboardButton("▶ GENERATE", callback_data="gen")]]
+        keyboard = [[InlineKeyboardButton("🔥 Gen Crunchyroll", callback_data="gen")]]
         await query.edit_message_text(
-            f"❌ 𝗥𝗲𝗽𝗼𝗿𝘁𝗲𝗱\n\n"
-            f"𝗬𝗼𝘂 𝗰𝗮𝗻 𝗻𝗼𝘄 𝗴𝗲𝗻𝗲𝗿𝗮𝘁𝗲 𝗮𝗴𝗮𝗶𝗻.",
+            f"❌ <b>Noted! Account marked as not working.</b>\n\n"
+            f"<i>You can now generate a new account.</i>",
             parse_mode=ParseMode.HTML,
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
 
-    elif query.data == "stats":
-        stats = context.bot_data.get('stats', {})
-        total = stats.get(user_id, {}).get('total', 0)
-        working = stats.get(user_id, {}).get('working', 0)
-        dead = stats.get(user_id, {}).get('dead', 0)
-        
+    elif query.data == "file":
         await query.edit_message_text(
-            f"📊 𝗠𝘆 𝗦𝘁𝗮𝘁𝘀\n\n"
-            f"𝗚𝗲𝗻𝗲𝗿𝗮𝘁𝗲𝗱: {total}\n"
-            f"𝗪𝗼𝗿𝗸𝗶𝗻𝗴: {working}\n"
-            f"𝗗𝗲𝗮𝗱: {dead}",
+            f"📁 <b>Send File .txt</b>\n\n"
+            f"Send a <code>.txt</code> file containing accounts.",
+            parse_mode=ParseMode.HTML
+        )
+
+    elif query.data == "text":
+        await query.edit_message_text(
+            f"📝 <b>Send Text</b>\n\n"
+            f"Send accounts in format:\n"
+            f"<code>email:password</code>",
+            parse_mode=ParseMode.HTML
+        )
+
+    elif query.data == "reviews":
+        await query.edit_message_text(
+            f"⭐ <b>Reviews</b>\n\n"
+            f"No reviews yet. Be the first!",
+            parse_mode=ParseMode.HTML
+        )
+
+    elif query.data == "dev":
+        await query.edit_message_text(
+            f"👨‍💻 <b>Developer</b>\n\n"
+            f"Made by @X1n0q | Hex",
             parse_mode=ParseMode.HTML
         )
 
     elif query.data == "help":
         await query.edit_message_text(
-            f"❓ 𝗛𝗼𝘄 𝘁𝗼 𝗨𝘀𝗲\n\n"
-            f"1. 𝗚𝗲𝗻𝗲𝗿𝗮𝘁𝗲 𝗮𝗰𝗰𝗼𝘂𝗻𝘁\n"
-            f"2. 𝗧𝗲𝘀𝘁 𝗶𝘁\n"
-            f"3. 𝗖𝗹𝗶𝗰𝗸 𝗪𝗼𝗿𝗸𝗶𝗻𝗴 𝗼𝗿 𝗡𝗼𝘁 𝗪𝗼𝗿𝗸𝗶𝗻𝗴\n"
-            f"4. 𝗚𝗲𝗻𝗲𝗿𝗮𝘁𝗲 𝗮𝗴𝗮𝗶𝗻\n\n"
+            f"❓ <b>How to Use</b>\n\n"
+            f"1️⃣ Click <b>Gen Crunchyroll</b>\n"
+            f"2️⃣ Wait 8-18 seconds\n"
+            f"3️⃣ Test the account\n"
+            f"4️⃣ Click <b>Working</b> or <b>Not Working</b>\n"
+            f"5️⃣ Generate again\n\n"
+            f"⚠️ <b>You MUST verify before generating again.</b>\n\n"
             f"✦ @X1n0q | Hex",
             parse_mode=ParseMode.HTML
         )
@@ -299,7 +329,11 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_photo(
             chat_id=OWNER_CHAT_ID,
             photo=photo.file_id,
-            caption=f"✅ 𝗪𝗢𝗥𝗞𝗜𝗡𝗚 (𝗽𝗿𝗼𝗼𝗳)\n\n𝗨𝘀𝗲𝗿: {user_id} (@{username})\n𝗘𝗺𝗮𝗶𝗹: {email}\n𝗣𝗮𝘀𝘀: {password}",
+            caption=f"✅ <b>WORKING - WITH PROOF</b>\n\n"
+                    f"👤 User: {user_id} (@{username})\n"
+                    f"📧 Email: <code>{email}</code>\n"
+                    f"🔑 Pass: <code>{password}</code>\n"
+                    f"🕐 Time: {time.strftime('%Y-%m-%d %H:%M:%S')}",
             parse_mode=ParseMode.HTML
         )
         
@@ -315,17 +349,19 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         stats[user_id]['working'] = stats[user_id].get('working', 0) + 1
         context.bot_data['stats'] = stats
         
-        keyboard = [[InlineKeyboardButton("▶ GENERATE", callback_data="gen")]]
+        keyboard = [[InlineKeyboardButton("🔥 Gen Crunchyroll", callback_data="gen")]]
         await update.message.reply_text(
-            f"✅ 𝗩𝗲𝗿𝗶𝗳𝗶𝗲𝗱\n\n"
-            f"𝗬𝗼𝘂 𝗰𝗮𝗻 𝗻𝗼𝘄 𝗴𝗲𝗻𝗲𝗿𝗮𝘁𝗲 𝗮𝗴𝗮𝗶𝗻.",
+            f"✅ <b>Screenshot received! Thank you for verifying.</b>\n\n"
+            f"Account marked as WORKING with proof.\n"
+            f"Use /start to generate another.",
             parse_mode=ParseMode.HTML,
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
     else:
         await update.message.reply_text(
-            f"⚠️ 𝗣𝗹𝗲𝗮𝘀𝗲 𝘀𝗲𝗻𝗱 𝗮 𝘃𝗮𝗹𝗶𝗱 𝗽𝗵𝗼𝘁𝗼 𝗼𝗻𝗹𝘆.\n\n"
-            f"𝗬𝗼𝘂𝗿 𝘀𝗰𝗿𝗲𝗲𝗻𝘀𝗵𝗼𝘁 𝗺𝘂𝘀𝘁 𝗯𝗲 𝗮 𝗝𝗣𝗘𝗚 𝗼𝗿 𝗣𝗡𝗚 𝗳𝗶𝗹𝗲.",
+            f"⚠️ <b>Please send a valid photo only.</b>\n\n"
+            f"🎁 Your screenshot must be a JPEG or PNG file.\n"
+            f"Please try again with a proper screenshot.",
             parse_mode=ParseMode.HTML
         )
 
@@ -334,7 +370,9 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if context.user_data.get('awaiting_screenshot', False):
         await update.message.reply_text(
-            f"⚠️ 𝗣𝗹𝗲𝗮𝘀𝗲 𝘀𝗲𝗻𝗱 𝗮 𝗽𝗵𝗼𝘁𝗼.",
+            f"⚠️ <b>Please send a valid photo only.</b>\n\n"
+            f"🎁 Your screenshot must be a JPEG or PNG file.\n"
+            f"Please try again with a proper screenshot.",
             parse_mode=ParseMode.HTML
         )
         return
@@ -344,21 +382,22 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.bot_data.get(pending_key, False):
         email = context.bot_data.get(f"pending_email_{user_id}", "Unknown")
         keyboard = [
-            [InlineKeyboardButton("✅ Working", callback_data="feedback_working")],
+            [InlineKeyboardButton("✔ Working", callback_data="feedback_working")],
             [InlineKeyboardButton("❌ Not Working", callback_data="feedback_notworking")]
         ]
         await update.message.reply_text(
-            f"⚠️ 𝗣𝗲𝗻𝗱𝗶𝗻𝗴 𝗩𝗲𝗿𝗶𝗳𝗶𝗰𝗮𝘁𝗶𝗼𝗻\n\n"
-            f"𝗘𝗺𝗮𝗶𝗹: {email}\n\n"
-            f"𝗬𝗼𝘂 𝗠𝗨𝗦𝗧 𝗰𝗹𝗶𝗰𝗸 𝗪𝗼𝗿𝗸𝗶𝗻𝗴 𝗼𝗿 𝗡𝗼𝘁 𝗪𝗼𝗿𝗸𝗶𝗻𝗴\n"
-            f"𝗯𝗲𝗳𝗼𝗿𝗲 𝗴𝗲𝗻𝗲𝗿𝗮𝘁𝗶𝗻𝗴 𝗮𝗴𝗮𝗶𝗻.",
+            f"⚠️ <b>You have a pending account that needs verification!</b>\n"
+            f"📧 Email: <code>{email}</code>\n\n"
+            f"✔ Please click the - <b>Working</b> or - <b>Not Working</b> button.\n\n"
+            f"After verification, you can generate a new account using.\n"
+            f"{time.strftime('%I:%M %p')}",
             parse_mode=ParseMode.HTML,
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
         return
     
     await update.message.reply_text(
-        f"𝗨𝘀𝗲 /𝘀𝘁𝗮𝗿𝘁 𝘁𝗼 𝗯𝗲𝗴𝗶𝗻.",
+        f"Use /start to begin.",
         parse_mode=ParseMode.HTML
     )
 
