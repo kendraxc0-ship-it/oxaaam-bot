@@ -1,5 +1,5 @@
 #Made By @SajagOG | @KindCoders On Telegram. Site Used : Oxaam.com Auto Sign Up & Auto Service Extractor
-# UPGRADED v5: Channel Gate with Simple Verification + Photo-Only Feedback Lock
+# UPGRADED v6: FIXED Channel Verification - Now Works Perfectly
 
 import requests
 import random
@@ -139,10 +139,8 @@ async def loading_animation(status_msg):
         i += 1
 
 # ===== CHANNEL MEMBERSHIP CHECK =====
-async def is_user_in_channel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+async def is_user_in_channel(context: ContextTypes.DEFAULT_TYPE, user_id: int) -> bool:
     """Check if user is a member of the required channel"""
-    user_id = update.effective_user.id
-    
     try:
         chat_member = await context.bot.get_chat_member(
             chat_id=CHANNEL_ID,
@@ -189,16 +187,17 @@ async def show_join_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE, m
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     
-    # Check if user is verified
-    if not context.user_data.get('channel_verified', False):
-        if await is_user_in_channel(update, context):
-            context.user_data['channel_verified'] = True
-            await show_main_menu(update, context)
-        else:
-            await show_join_prompt(update, context)
+    # Check if user is already verified in this session
+    if context.user_data.get('channel_verified', False):
+        await show_main_menu(update, context)
         return
     
-    await show_main_menu(update, context)
+    # Check membership via API
+    if await is_user_in_channel(context, user_id):
+        context.user_data['channel_verified'] = True
+        await show_main_menu(update, context)
+    else:
+        await show_join_prompt(update, context)
 
 # ===== MAIN MENU =====
 async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, message=None):
@@ -248,14 +247,25 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # ===== VERIFY CHANNEL BUTTON =====
     if query.data == "verify_channel":
-        if await is_user_in_channel(update, context):
+        user_id = update.effective_user.id
+        
+        # Check membership
+        if await is_user_in_channel(context, user_id):
+            # Set verified flag
             context.user_data['channel_verified'] = True
+            
+            # Show success and immediately show main menu
             await query.edit_message_text(
                 "✅ <b>Verification Successful!</b>\n\n"
-                "You are now verified. Use /start to access the bot.",
+                "You are now verified. Loading main menu...",
                 parse_mode=ParseMode.HTML
             )
+            
+            # Show main menu after a brief delay
+            await asyncio.sleep(0.5)
+            await show_main_menu(update, context, query.message)
         else:
+            # Not verified - show prompt again
             await query.edit_message_text(
                 "❌ <b>Not Verified Yet</b>\n\n"
                 "You haven't joined the channel yet.\n"
@@ -270,7 +280,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # ===== ALL OTHER ACTIONS REQUIRE CHANNEL VERIFICATION =====
     if not context.user_data.get('channel_verified', False):
-        if not await is_user_in_channel(update, context):
+        user_id = update.effective_user.id
+        if not await is_user_in_channel(context, user_id):
             await show_join_prompt(update, context, query.message)
             return
         else:
@@ -373,9 +384,10 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ===== PHOTO HANDLER =====
 async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Only photos can clear pending feedback - but MUST be verified first"""
+    user_id = update.effective_user.id
     
     if not context.user_data.get('channel_verified', False):
-        if not await is_user_in_channel(update, context):
+        if not await is_user_in_channel(context, user_id):
             await show_join_prompt(update, context)
             return
         else:
@@ -384,9 +396,8 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.user_data.get('pending_feedback', False):
         email = context.user_data.get('last_email', 'Unknown')
         password = context.user_data.get('last_password', 'Unknown')
-        user_id = update.message.from_user.id
-        username = update.message.from_user.username or "NoUsername"
         feedback_type = context.user_data.get('feedback_type', 'unknown')
+        username = update.message.from_user.username or "NoUsername"
         
         photo = update.message.photo[-1]
         file_id = photo.file_id
@@ -436,9 +447,10 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ===== TEXT HANDLER =====
 async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Text is NEVER accepted - only photos"""
+    user_id = update.effective_user.id
     
     if not context.user_data.get('channel_verified', False):
-        if not await is_user_in_channel(update, context):
+        if not await is_user_in_channel(context, user_id):
             await show_join_prompt(update, context)
             return
         else:
@@ -466,10 +478,10 @@ def main():
     app.add_handler(MessageHandler(filters.PHOTO, photo_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))
     
-    print("🤖 Crunchyroll Generator Bot v5 - CHANNEL GATE (Simple Verify) + PHOTO-ONLY LOCK")
+    print("🤖 Crunchyroll Generator Bot v6 - FIXED Channel Verification")
     print(f"Channel: {CHANNEL_ID}")
     print(f"Owner: {OWNER_CHAT_ID}")
-    print("Users must join channel to use bot. Verify button checks membership only.\n")
+    print("✅ Verification flow: Join → Verify Now → Instant Access\n")
     
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
