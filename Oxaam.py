@@ -1,5 +1,5 @@
 #Made By @SajagOG | @KindCoders On Telegram. Site Used : Oxaam.com Auto Sign Up & Auto Service Extractor
-# UPGRADED v3: ZERO TEXT ESCAPES - PHOTO ONLY, LOCK TIGHT
+# UPGRADED v5: Channel Gate with Simple Verification + Photo-Only Feedback Lock
 
 import requests
 import random
@@ -19,6 +19,8 @@ logger = logging.getLogger(__name__)
 # ===== CONFIG =====
 BOT_TOKEN = "8516833981:AAGfsgG0vDzOzLNC9viruXa9l3wCz53LDOQ"
 OWNER_CHAT_ID = 7305141058
+CHANNEL_ID = "@Hexmaincuh"  # Channel username
+CHANNEL_LINK = "https://t.me/Hexmaincuh"
 
 def generate_user():
     names = ["Rahul", "Priya", "Amit", "Sneha", "Vikram", "Neha"]
@@ -136,65 +138,171 @@ async def loading_animation(status_msg):
         await asyncio.sleep(0.7)
         i += 1
 
+# ===== CHANNEL MEMBERSHIP CHECK =====
+async def is_user_in_channel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    """Check if user is a member of the required channel"""
+    user_id = update.effective_user.id
+    
+    try:
+        chat_member = await context.bot.get_chat_member(
+            chat_id=CHANNEL_ID,
+            user_id=user_id
+        )
+        return chat_member.status in ['creator', 'administrator', 'member']
+    except Exception as e:
+        logger.warning(f"Channel check failed for {user_id}: {e}")
+        return False
+
+# ===== JOIN PROMPT =====
+async def show_join_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE, message=None):
+    """Display the mandatory join prompt with buttons"""
+    keyboard = [
+        [InlineKeyboardButton("📢 Click Here to Join Channel", url=CHANNEL_LINK)],
+        [InlineKeyboardButton("✅ Verify Now", callback_data="verify_channel")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    text = (
+        "🔐 <b>Channel Verification Required</b>\n\n"
+        "You must join our channel before you can use this bot.\n\n"
+        "📌 <b>Why?</b>\n"
+        "• Get exclusive updates\n"
+        "• Access to premium content\n"
+        "• Support the developer\n\n"
+        "👇 <b>Click the button below to join, then press Verify Now.</b>"
+    )
+    
+    if message:
+        await message.edit_text(
+            text,
+            parse_mode=ParseMode.HTML,
+            reply_markup=reply_markup
+        )
+    else:
+        await update.message.reply_text(
+            text,
+            parse_mode=ParseMode.HTML,
+            reply_markup=reply_markup
+        )
+
+# ===== START COMMAND =====
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     
-    # ===== HARDCORE LOCK: Only show pending message, nothing else =====
+    # Check if user is verified
+    if not context.user_data.get('channel_verified', False):
+        if await is_user_in_channel(update, context):
+            context.user_data['channel_verified'] = True
+            await show_main_menu(update, context)
+        else:
+            await show_join_prompt(update, context)
+        return
+    
+    await show_main_menu(update, context)
+
+# ===== MAIN MENU =====
+async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, message=None):
+    """Show the main generation menu"""
+    # Check pending feedback lock
     if context.user_data.get('pending_feedback', False):
-        await update.message.reply_text(
+        lock_msg = (
             "⛔ <b>PENDING FEEDBACK REQUIRED</b>\n\n"
             "You must submit feedback for the last generated account before you can generate a new one.\n\n"
             "📸 Please send a <b>PHOTO</b> as proof:\n"
             "• ✅ Working → screenshot of working account\n"
             "• ❌ Not Working → screenshot showing the issue\n\n"
-            "<i>No text messages accepted. Only photos.</i>",
-            parse_mode=ParseMode.HTML
+            "<i>No text messages accepted. Only photos.</i>"
         )
+        if message:
+            await message.edit_text(lock_msg, parse_mode=ParseMode.HTML)
+        else:
+            await update.message.reply_text(lock_msg, parse_mode=ParseMode.HTML)
         return
-
+    
     keyboard = [[InlineKeyboardButton("🔥 Gen Crunchyroll", callback_data="gen_krunshy")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
-
-    await update.message.reply_text(
+    
+    main_text = (
         "👋 <b>Crunchyroll Farmer Bot</b>\n\n"
         "Click the button to generate fresh <b>Crunchy Premium</b> credentials.\n\n"
-        "<i>Shared accounts may expire quickly.</i>",
-        parse_mode=ParseMode.HTML,
-        reply_markup=reply_markup
+        "<i>Shared accounts may expire quickly.</i>"
     )
+    
+    if message:
+        await message.edit_text(
+            main_text,
+            parse_mode=ParseMode.HTML,
+            reply_markup=reply_markup
+        )
+    else:
+        await update.message.reply_text(
+            main_text,
+            parse_mode=ParseMode.HTML,
+            reply_markup=reply_markup
+        )
 
+# ===== BUTTON HANDLER =====
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-
+    
+    # ===== VERIFY CHANNEL BUTTON =====
+    if query.data == "verify_channel":
+        if await is_user_in_channel(update, context):
+            context.user_data['channel_verified'] = True
+            await query.edit_message_text(
+                "✅ <b>Verification Successful!</b>\n\n"
+                "You are now verified. Use /start to access the bot.",
+                parse_mode=ParseMode.HTML
+            )
+        else:
+            await query.edit_message_text(
+                "❌ <b>Not Verified Yet</b>\n\n"
+                "You haven't joined the channel yet.\n"
+                "Please click the 'Click Here' button below to join, then press 'Verify Now' again.",
+                parse_mode=ParseMode.HTML,
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("📢 Click Here to Join Channel", url=CHANNEL_LINK)],
+                    [InlineKeyboardButton("✅ Verify Now", callback_data="verify_channel")]
+                ])
+            )
+        return
+    
+    # ===== ALL OTHER ACTIONS REQUIRE CHANNEL VERIFICATION =====
+    if not context.user_data.get('channel_verified', False):
+        if not await is_user_in_channel(update, context):
+            await show_join_prompt(update, context, query.message)
+            return
+        else:
+            context.user_data['channel_verified'] = True
+    
+    # ===== GENERATE BUTTON =====
     if query.data == "gen_krunshy":
-        # Double-check lock
         if context.user_data.get('pending_feedback', False):
             await query.edit_message_text(
                 "⛔ PENDING FEEDBACK - Send a photo to unlock.",
                 parse_mode=ParseMode.HTML
             )
             return
-
+        
         status_msg = await query.message.reply_text("🚀 Starting generation...", parse_mode=ParseMode.HTML)
-
+        
         animation_task = asyncio.create_task(loading_animation(status_msg))
-
+        
         service, email, password = await asyncio.to_thread(extract_krunshyrole)
-
+        
         animation_task.cancel()
         try:
             await animation_task
         except asyncio.CancelledError:
             pass
-
+        
         if email and password:
-            # Store credentials and set pending feedback flag
             context.user_data['last_email'] = email
             context.user_data['last_password'] = password
             context.user_data['last_service'] = service
             context.user_data['pending_feedback'] = True
-
+            
             result_text = (
                 f"✅ <b>Crunchyroll Premium Generated!</b>\n\n"
                 f"<b>Service :</b> <b> CrunchiefarmV6.6</b>\n"
@@ -204,7 +312,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"👇 <b>Is the account working?</b>"
             )
             
-            # Add feedback buttons
             keyboard = [
                 [
                     InlineKeyboardButton("✅ Working", callback_data="feedback_working"),
@@ -219,17 +326,21 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 reply_markup=reply_markup
             )
         else:
-            # If generation fails, don't set pending flag
             await status_msg.edit_text(
                 "❌ <b>Could not extract Krunshyrole credentials this time.</b>\n\n"
                 "The site may have updated. Try again in a few minutes.\n"
                 "Check the saved HTML file for details.",
                 parse_mode=ParseMode.HTML
             )
-
-    # ===== WORKING: ASK FOR SCREENSHOT =====
+    
+    # ===== FEEDBACK BUTTONS =====
     elif query.data == "feedback_working":
-        email = context.user_data.get('last_email', 'Unknown')
+        if not context.user_data.get('pending_feedback', False):
+            await query.edit_message_text(
+                "⚠️ No pending feedback to submit.",
+                parse_mode=ParseMode.HTML
+            )
+            return
         
         context.user_data['feedback_type'] = 'working'
         
@@ -241,11 +352,14 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"{time.strftime('%I:%M %p')}",
             parse_mode=ParseMode.HTML
         )
-        await query.answer("Please send screenshot proof")
-
-    # ===== NOT WORKING: ASK FOR SCREENSHOT =====
+        
     elif query.data == "feedback_notworking":
-        email = context.user_data.get('last_email', 'Unknown')
+        if not context.user_data.get('pending_feedback', False):
+            await query.edit_message_text(
+                "⚠️ No pending feedback to submit.",
+                parse_mode=ParseMode.HTML
+            )
+            return
         
         context.user_data['feedback_type'] = 'not_working'
         
@@ -255,11 +369,17 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"<i>Only photos will be accepted.</i>",
             parse_mode=ParseMode.HTML
         )
-        await query.answer("Please send screenshot proof")
 
-# ===== PHOTO HANDLER - ONLY WAY TO CLEAR LOCK =====
+# ===== PHOTO HANDLER =====
 async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Only photos can clear pending feedback"""
+    """Only photos can clear pending feedback - but MUST be verified first"""
+    
+    if not context.user_data.get('channel_verified', False):
+        if not await is_user_in_channel(update, context):
+            await show_join_prompt(update, context)
+            return
+        else:
+            context.user_data['channel_verified'] = True
     
     if context.user_data.get('pending_feedback', False):
         email = context.user_data.get('last_email', 'Unknown')
@@ -271,7 +391,6 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         photo = update.message.photo[-1]
         file_id = photo.file_id
         
-        # Build caption based on feedback type
         if feedback_type == 'working':
             status_emoji = "✅"
             status_text = "WORKING - WITH PROOF"
@@ -298,11 +417,9 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode=ParseMode.HTML
         )
         
-        # Clear all flags - UNLOCK
         context.user_data['pending_feedback'] = False
         context.user_data.pop('feedback_type', None)
         
-        # Confirm to user
         await update.message.reply_text(
             f"{status_emoji} <b>Feedback received! Thank you.</b>\n\n"
             "You can now generate a new account using /start.",
@@ -316,9 +433,16 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode=ParseMode.HTML
         )
 
-# ===== TEXT HANDLER - COMPLETELY BLOCKED DURING PENDING =====
+# ===== TEXT HANDLER =====
 async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Text is NEVER accepted - only photos"""
+    
+    if not context.user_data.get('channel_verified', False):
+        if not await is_user_in_channel(update, context):
+            await show_join_prompt(update, context)
+            return
+        else:
+            context.user_data['channel_verified'] = True
     
     if context.user_data.get('pending_feedback', False):
         await update.message.reply_text(
@@ -336,15 +460,16 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
-
+    
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_handler))
     app.add_handler(MessageHandler(filters.PHOTO, photo_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))
-
-    print("🤖 Crunchyroll Generator Bot v3 - PHOTO ONLY, NO TEXT ESCAPES...")
-    print("All feedback photos will be sent to:", OWNER_CHAT_ID)
-    print("Users are LOCKED from /start until they send a photo.\n")
+    
+    print("🤖 Crunchyroll Generator Bot v5 - CHANNEL GATE (Simple Verify) + PHOTO-ONLY LOCK")
+    print(f"Channel: {CHANNEL_ID}")
+    print(f"Owner: {OWNER_CHAT_ID}")
+    print("Users must join channel to use bot. Verify button checks membership only.\n")
     
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
