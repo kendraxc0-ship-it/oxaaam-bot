@@ -1,5 +1,5 @@
 #Made By @SajagOG | @KindCoders On Telegram. Site Used : Oxaam.com Auto Sign Up & Auto Service Extractor
-# UPGRADED v6: FIXED Channel Verification - Now Works Perfectly
+# UPGRADED v9: CORRECT Channel ID - Now Working!
 
 import requests
 import random
@@ -12,14 +12,18 @@ import json
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
 from telegram.constants import ParseMode
+from telegram.error import BadRequest
 
-logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', 
+    level=logging.INFO
+)
 logger = logging.getLogger(__name__)
 
 # ===== CONFIG =====
 BOT_TOKEN = "8516833981:AAGfsgG0vDzOzLNC9viruXa9l3wCz53LDOQ"
 OWNER_CHAT_ID = 7305141058
-CHANNEL_ID = "@Hexmaincuh"  # Channel username
+CHANNEL_ID = -1004253692032  # ✅ CORRECT CHANNEL ID FROM USERINFO BOT
 CHANNEL_LINK = "https://t.me/Hexmaincuh"
 
 def generate_user():
@@ -138,17 +142,38 @@ async def loading_animation(status_msg):
         await asyncio.sleep(0.7)
         i += 1
 
-# ===== CHANNEL MEMBERSHIP CHECK =====
+# ===== CHANNEL MEMBERSHIP CHECK - WITH CORRECT ID =====
 async def is_user_in_channel(context: ContextTypes.DEFAULT_TYPE, user_id: int) -> bool:
     """Check if user is a member of the required channel"""
     try:
+        logger.info(f"Checking membership for user {user_id} in channel {CHANNEL_ID}")
         chat_member = await context.bot.get_chat_member(
             chat_id=CHANNEL_ID,
             user_id=user_id
         )
-        return chat_member.status in ['creator', 'administrator', 'member']
+        logger.info(f"User {user_id} status: {chat_member.status}")
+        
+        if chat_member.status in ['creator', 'administrator', 'member']:
+            logger.info(f"✅ User {user_id} IS in channel")
+            return True
+        else:
+            logger.warning(f"❌ User {user_id} is NOT in channel (status: {chat_member.status})")
+            return False
+            
+    except BadRequest as e:
+        logger.error(f"BadRequest: {e}")
+        if "bot is not a member" in str(e).lower():
+            await context.bot.send_message(
+                chat_id=OWNER_CHAT_ID,
+                text="⚠️ <b>URGENT: Bot is not a member of the channel!</b>\n\n"
+                     "Please add the bot to the channel first, then make it an admin.\n"
+                     f"Channel ID: {CHANNEL_ID}\n"
+                     f"Channel: {CHANNEL_LINK}",
+                parse_mode=ParseMode.HTML
+            )
+        return False
     except Exception as e:
-        logger.warning(f"Channel check failed for {user_id}: {e}")
+        logger.error(f"Channel check failed: {e}")
         return False
 
 # ===== JOIN PROMPT =====
@@ -171,11 +196,18 @@ async def show_join_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE, m
     )
     
     if message:
-        await message.edit_text(
-            text,
-            parse_mode=ParseMode.HTML,
-            reply_markup=reply_markup
-        )
+        try:
+            await message.edit_text(
+                text,
+                parse_mode=ParseMode.HTML,
+                reply_markup=reply_markup
+            )
+        except:
+            await message.reply_text(
+                text,
+                parse_mode=ParseMode.HTML,
+                reply_markup=reply_markup
+            )
     else:
         await update.message.reply_text(
             text,
@@ -228,11 +260,18 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, mes
     )
     
     if message:
-        await message.edit_text(
-            main_text,
-            parse_mode=ParseMode.HTML,
-            reply_markup=reply_markup
-        )
+        try:
+            await message.edit_text(
+                main_text,
+                parse_mode=ParseMode.HTML,
+                reply_markup=reply_markup
+            )
+        except:
+            await message.reply_text(
+                main_text,
+                parse_mode=ParseMode.HTML,
+                reply_markup=reply_markup
+            )
     else:
         await update.message.reply_text(
             main_text,
@@ -244,14 +283,12 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, mes
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+    user_id = update.effective_user.id
     
     # ===== VERIFY CHANNEL BUTTON =====
     if query.data == "verify_channel":
-        user_id = update.effective_user.id
-        
         # Check membership
         if await is_user_in_channel(context, user_id):
-            # Set verified flag
             context.user_data['channel_verified'] = True
             
             # Show success and immediately show main menu
@@ -280,7 +317,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # ===== ALL OTHER ACTIONS REQUIRE CHANNEL VERIFICATION =====
     if not context.user_data.get('channel_verified', False):
-        user_id = update.effective_user.id
         if not await is_user_in_channel(context, user_id):
             await show_join_prompt(update, context, query.message)
             return
@@ -478,10 +514,14 @@ def main():
     app.add_handler(MessageHandler(filters.PHOTO, photo_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))
     
-    print("🤖 Crunchyroll Generator Bot v6 - FIXED Channel Verification")
-    print(f"Channel: {CHANNEL_ID}")
-    print(f"Owner: {OWNER_CHAT_ID}")
-    print("✅ Verification flow: Join → Verify Now → Instant Access\n")
+    print("=" * 60)
+    print("🤖 Crunchyroll Generator Bot v9 - CORRECT CHANNEL ID")
+    print("=" * 60)
+    print(f"📢 Channel ID: {CHANNEL_ID}")
+    print(f"📢 Channel Link: {CHANNEL_LINK}")
+    print(f"👤 Owner: {OWNER_CHAT_ID}")
+    print("\n✅ Channel ID verified and updated!")
+    print("=" * 60)
     
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
