@@ -1,5 +1,5 @@
 #Made By @SajagOG | @KindCoders On Telegram. Site Used : Oxaam.com Auto Sign Up & Auto Service Extractor
-# UPGRADED v9: CORRECT Channel ID - Now Working!
+# UPGRADED v10: FORCED VERIFICATION ON EVERY START - No cached sessions
 
 import requests
 import random
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 # ===== CONFIG =====
 BOT_TOKEN = "8516833981:AAGfsgG0vDzOzLNC9viruXa9l3wCz53LDOQ"
 OWNER_CHAT_ID = 7305141058
-CHANNEL_ID = -1004253692032  # ✅ CORRECT CHANNEL ID FROM USERINFO BOT
+CHANNEL_ID = -1004253692032  # ✅ CORRECT CHANNEL ID
 CHANNEL_LINK = "https://t.me/Hexmaincuh"
 
 def generate_user():
@@ -142,7 +142,7 @@ async def loading_animation(status_msg):
         await asyncio.sleep(0.7)
         i += 1
 
-# ===== CHANNEL MEMBERSHIP CHECK - WITH CORRECT ID =====
+# ===== CHANNEL MEMBERSHIP CHECK =====
 async def is_user_in_channel(context: ContextTypes.DEFAULT_TYPE, user_id: int) -> bool:
     """Check if user is a member of the required channel"""
     try:
@@ -215,20 +215,20 @@ async def show_join_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE, m
             reply_markup=reply_markup
         )
 
-# ===== START COMMAND =====
+# ===== START COMMAND - ALWAYS CHECK VERIFICATION =====
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
+    logger.info(f"START command from user {user_id}")
     
-    # Check if user is already verified in this session
-    if context.user_data.get('channel_verified', False):
-        await show_main_menu(update, context)
-        return
-    
-    # Check membership via API
+    # ALWAYS check membership - don't trust cached flag
     if await is_user_in_channel(context, user_id):
+        logger.info(f"User {user_id} is verified, showing main menu")
         context.user_data['channel_verified'] = True
         await show_main_menu(update, context)
     else:
+        logger.info(f"User {user_id} not verified, showing join prompt")
+        # Clear any cached verification
+        context.user_data['channel_verified'] = False
         await show_join_prompt(update, context)
 
 # ===== MAIN MENU =====
@@ -316,12 +316,13 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     # ===== ALL OTHER ACTIONS REQUIRE CHANNEL VERIFICATION =====
-    if not context.user_data.get('channel_verified', False):
-        if not await is_user_in_channel(context, user_id):
-            await show_join_prompt(update, context, query.message)
-            return
-        else:
-            context.user_data['channel_verified'] = True
+    # ALWAYS re-check - don't trust cached flag
+    if not await is_user_in_channel(context, user_id):
+        context.user_data['channel_verified'] = False
+        await show_join_prompt(update, context, query.message)
+        return
+    else:
+        context.user_data['channel_verified'] = True
     
     # ===== GENERATE BUTTON =====
     if query.data == "gen_krunshy":
@@ -422,12 +423,13 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Only photos can clear pending feedback - but MUST be verified first"""
     user_id = update.effective_user.id
     
-    if not context.user_data.get('channel_verified', False):
-        if not await is_user_in_channel(context, user_id):
-            await show_join_prompt(update, context)
-            return
-        else:
-            context.user_data['channel_verified'] = True
+    # ALWAYS re-check verification
+    if not await is_user_in_channel(context, user_id):
+        context.user_data['channel_verified'] = False
+        await show_join_prompt(update, context)
+        return
+    else:
+        context.user_data['channel_verified'] = True
     
     if context.user_data.get('pending_feedback', False):
         email = context.user_data.get('last_email', 'Unknown')
@@ -485,12 +487,13 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Text is NEVER accepted - only photos"""
     user_id = update.effective_user.id
     
-    if not context.user_data.get('channel_verified', False):
-        if not await is_user_in_channel(context, user_id):
-            await show_join_prompt(update, context)
-            return
-        else:
-            context.user_data['channel_verified'] = True
+    # ALWAYS re-check verification
+    if not await is_user_in_channel(context, user_id):
+        context.user_data['channel_verified'] = False
+        await show_join_prompt(update, context)
+        return
+    else:
+        context.user_data['channel_verified'] = True
     
     if context.user_data.get('pending_feedback', False):
         await update.message.reply_text(
@@ -515,12 +518,12 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))
     
     print("=" * 60)
-    print("🤖 Crunchyroll Generator Bot v9 - CORRECT CHANNEL ID")
+    print("🤖 Crunchyroll Generator Bot v10 - FORCED VERIFICATION")
     print("=" * 60)
     print(f"📢 Channel ID: {CHANNEL_ID}")
     print(f"📢 Channel Link: {CHANNEL_LINK}")
     print(f"👤 Owner: {OWNER_CHAT_ID}")
-    print("\n✅ Channel ID verified and updated!")
+    print("\n✅ EVERY /start checks channel membership - no cached sessions")
     print("=" * 60)
     
     app.run_polling(allowed_updates=Update.ALL_TYPES)
